@@ -1,0 +1,7 @@
+[0;31;9mThis is [0;9;34;1mbold[0;31;9m [0;4mtext.[0;31;9m The end.[0m
+Line with no style
+[0;43;1;9mStrikethrough[0m
+  [0;43;1;31mRed[0m
+  Lines[0m
+  [0;43;1;31mAnd bold[0m
+[0;43;1mThe end.[0m
