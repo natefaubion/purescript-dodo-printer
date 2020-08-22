@@ -170,6 +170,7 @@ encloseEmptyAlt open close default inner
 -- | a series of documents.
 -- | ```purescript`
 -- | example = encloseWithSeparator (text "[") (text "]") (",") [ text "one", text "two" ]
+-- | ```
 encloseWithSeparator :: forall f a. Foldable f => Doc a -> Doc a -> Doc a -> f (Doc a) -> Doc a
 encloseWithSeparator open close separator inner =
   open <> (foldWithSeparator separator inner <> close)
