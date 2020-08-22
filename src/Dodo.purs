@@ -317,7 +317,11 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         Text len str
           | state.position.column == 0 && state.indent > 0 ->
               go stack state
-                { position { column = state.indent }
+                { position
+                    { column = state.indent
+                    , indent = state.indent
+                    , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
+                    }
                 , buffer = Buffer.modify (printer.writeIndent state.indent state.indentSpaces) state.buffer
                 }
           | otherwise -> do
@@ -375,7 +379,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           | otherwise ->
               go (Doc doc1 : stk) state
         WithPosition k
-          | state.position.column == 0 && state.indent > 0 -> do
+          | state.position.column == 0 && state.indent > state.position.indent -> do
               let
                 renderPosition = state.position
                   { column = state.indent
