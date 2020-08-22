@@ -339,12 +339,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             go frame.stack $ resetState frame
           _ ->
             go stk state
-              { position
-                  { line = state.position.line + 1
-                  , column = 0
-                  , indent = state.indent
-                  , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
-                  }
+              { position { line = state.position.line + 1, column = 0 }
               , buffer = Buffer.modify printer.writeBreak state.buffer
               }
         Indent doc1
