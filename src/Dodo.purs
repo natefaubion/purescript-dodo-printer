@@ -250,7 +250,8 @@ type FlexGroupState b a =
   { position :: Position
   , buffer :: Buffer b
   , annotations :: List a
-  , indent :: String
+  , indent :: Int
+  , indentSpaces :: String
   , stack :: List (DocCmd a)
   }
 
@@ -258,17 +259,18 @@ type DocState b a =
   { position :: Position
   , buffer :: Buffer b
   , annotations :: List a
-  , indent :: String
+  , indent :: Int
+  , indentSpaces :: String
   , flexGroup :: Maybe (FlexGroupState b a)
   }
 
 resetState :: forall a b. FlexGroupState b a -> DocState b a
-resetState { position, buffer, annotations, indent: indent' } =
-  { position, buffer, annotations, indent: indent', flexGroup: Nothing }
+resetState { position, buffer, annotations, indent: indent', indentSpaces } =
+  { position, buffer, annotations, indent: indent', indentSpaces, flexGroup: Nothing }
 
 storeState :: forall a b. List (DocCmd a) -> DocState b a -> FlexGroupState b a
-storeState stack { position, buffer, annotations, indent: indent' } =
-  { position, buffer, annotations, indent: indent', stack }
+storeState stack { position, buffer, annotations, indent: indent', indentSpaces } =
+  { position, buffer, annotations, indent: indent', indentSpaces, stack }
 
 -- | Prints a documents given a printer and print options.
 -- |
@@ -299,7 +301,8 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         }
     , buffer: Buffer.new printer.emptyBuffer
     , annotations: List.Nil
-    , indent: ""
+    , indent: 0
+    , indentSpaces: ""
     , flexGroup: Nothing
     }
 
@@ -312,10 +315,10 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         Append doc1 doc2 ->
           go (Doc doc1 : Doc doc2 : stk) state
         Text len str
-          | state.position.column == 0 && state.position.indent > 0 ->
+          | state.position.column == 0 && state.indent > 0 ->
               go stack state
-                { position { column = state.position.indent }
-                , buffer = Buffer.modify (printer.writeIndent state.position.indent state.indent) state.buffer
+                { position { column = state.indent }
+                , buffer = Buffer.modify (printer.writeIndent state.indent state.indentSpaces) state.buffer
                 }
           | otherwise -> do
               let nextColumn = state.position.column + len
@@ -332,27 +335,29 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             go frame.stack $ resetState frame
           _ ->
             go stk state
-              { position { line = state.position.line + 1, column = 0 }
+              { position
+                  { line = state.position.line + 1
+                  , column = 0
+                  , indent = state.indent
+                  , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
+                  }
               , buffer = Buffer.modify printer.writeBreak state.buffer
               }
         Indent doc1
           | isJust state.flexGroup ->
               go (Doc doc1 : stk) state
           | otherwise ->
-              go (Doc doc1 : Dedent state.indent state.position.indent : stk) state
-                { position
-                    { indent = state.position.indent + opts.indentWidth
-                    , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.position.indent)
-                    }
-                , indent = state.indent <> opts.indentUnit
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { indent = state.indent + opts.indentWidth
+                , indentSpaces = state.indentSpaces <> opts.indentUnit
                 }
         Align width doc1
           | isJust state.flexGroup ->
               go (Doc doc1 : stk) state
           | otherwise ->
-              go (Doc doc1 : Dedent state.indent state.position.indent : stk) state
-                { position { indent = state.position.indent + width }
-                , indent = state.indent <> power " " width
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { indent = state.indent + width
+                , indentSpaces = state.indentSpaces <> power " " width
                 }
         FlexGroup doc1
           -- We only track the first flex group. This is equivalent to
@@ -370,8 +375,13 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           | otherwise ->
               go (Doc doc1 : stk) state
         WithPosition k
-          | state.position.column == 0 && state.position.indent > 0 -> do
-              let renderPosition = state.position { column = state.position.indent }
+          | state.position.column == 0 && state.indent > 0 -> do
+              let
+                renderPosition = state.position
+                  { column = state.indent
+                  , indent = state.indent
+                  , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
+                  }
               go (Doc (k renderPosition) : stk) state
           | otherwise ->
               go (Doc (k state.position) : stk) state
@@ -387,10 +397,10 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           { flexGroup = Nothing
           , buffer = Buffer.commit state.buffer
           }
-      Dedent ind indWidth ->
+      Dedent indSpaces ind ->
         go stk state
-          { position { indent = indWidth }
-          , indent = ind
+          { indent = ind
+          , indentSpaces = indSpaces
           }
       LeaveAnnotation ann anns ->
         go stk state
