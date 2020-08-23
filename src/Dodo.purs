@@ -343,22 +343,16 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
               { position { line = state.position.line + 1, column = 0 }
               , buffer = Buffer.modify printer.writeBreak state.buffer
               }
-        Indent doc1
-          | isJust state.flexGroup ->
-              go (Doc doc1 : stk) state
-          | otherwise ->
-              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
-                { indent = state.indent + opts.indentWidth
-                , indentSpaces = state.indentSpaces <> opts.indentUnit
-                }
-        Align width doc1
-          | isJust state.flexGroup ->
-              go (Doc doc1 : stk) state
-          | otherwise ->
-              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
-                { indent = state.indent + width
-                , indentSpaces = state.indentSpaces <> power " " width
-                }
+        Indent doc1 ->
+          go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+            { indent = state.indent + opts.indentWidth
+            , indentSpaces = state.indentSpaces <> opts.indentUnit
+            }
+        Align width doc1 ->
+          go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+            { indent = state.indent + width
+            , indentSpaces = state.indentSpaces <> power " " width
+            }
         FlexGroup doc1
           -- We only track the first flex group. This is equivalent to
           -- end-of-line lookahead.
