@@ -80,7 +80,7 @@ Hello,
   World!
 ```
 
-We can also align to a certain number of spaced:
+We can also align to a certain number of spaces:
 
 ```purescript
 hello :: forall a. Doc a
