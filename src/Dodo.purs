@@ -42,7 +42,6 @@ import Data.Foldable (class Foldable, foldl, foldr)
 import Data.Int as Int
 import Data.List (List, (:))
 import Data.List as List
-import Data.Maybe (Maybe(..), isJust)
 import Data.Monoid (power)
 import Data.String as String
 import Data.String.Regex as Regex
@@ -247,6 +246,11 @@ data DocCmd a
   | LeaveAnnotation a (List a)
   | LeaveFlexGroup
 
+data FlexGroupStatus b a
+  = NoFlexGroup
+  | FlexGroupOpen
+  | FlexGroupReset (FlexGroupState b a)
+
 type FlexGroupState b a =
   { position :: Position
   , buffer :: Buffer b
@@ -262,12 +266,12 @@ type DocState b a =
   , annotations :: List a
   , indent :: Int
   , indentSpaces :: String
-  , flexGroup :: Maybe (FlexGroupState b a)
+  , flexGroup :: FlexGroupStatus b a
   }
 
 resetState :: forall a b. FlexGroupState b a -> DocState b a
 resetState { position, buffer, annotations, indent: indent', indentSpaces } =
-  { position, buffer, annotations, indent: indent', indentSpaces, flexGroup: Nothing }
+  { position, buffer, annotations, indent: indent', indentSpaces, flexGroup: NoFlexGroup }
 
 storeState :: forall a b. List (DocCmd a) -> DocState b a -> FlexGroupState b a
 storeState stack { position, buffer, annotations, indent: indent', indentSpaces } =
@@ -304,7 +308,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
     , annotations: List.Nil
     , indent: 0
     , indentSpaces: ""
-    , flexGroup: Nothing
+    , flexGroup: NoFlexGroup
     }
 
   go :: List (DocCmd a) -> DocState b a -> r
@@ -325,19 +329,27 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                     }
                 , buffer = Buffer.modify (printer.writeIndent state.indent state.indentSpaces) state.buffer
                 }
-          | otherwise -> do
-              let nextColumn = state.position.column + len
-              case state.flexGroup of
-                Just frame | nextColumn > state.position.indent + state.position.ribbonWidth ->
-                  go frame.stack $ resetState frame
-                _ ->
-                  go stk state
-                    { position { column = nextColumn }
-                    , buffer = Buffer.modify (printer.writeText len str) state.buffer
-                    }
+          | state.position.column + len <= state.position.indent + state.position.ribbonWidth ->
+              go stk state
+                { position { column = state.position.column + len }
+                , buffer = Buffer.modify (printer.writeText len str) state.buffer
+                }
+          | otherwise -> case state.flexGroup of
+              FlexGroupReset frame ->
+                go frame.stack $ resetState frame
+              _ ->
+                go stk state
+                  { position { column = state.position.column + len }
+                  , flexGroup = NoFlexGroup
+                  , buffer = Buffer.modify (printer.writeText len str) state.buffer
+                  }
         Break -> case state.flexGroup of
-          Just frame ->
+          FlexGroupReset frame ->
             go frame.stack $ resetState frame
+          FlexGroupOpen ->
+            go stack state
+              { flexGroup = NoFlexGroup
+              }
           _ ->
             go stk state
               { position { line = state.position.line + 1, column = 0 }
@@ -353,21 +365,23 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             { indent = state.indent + width
             , indentSpaces = state.indentSpaces <> power " " width
             }
-        FlexGroup doc1
-          -- We only track the first flex group. This is equivalent to
-          -- end-of-line lookahead.
-          | isJust state.flexGroup || state.position.ribbonWidth == 0 ->
-              go (Doc doc1 : stk) state
-          | otherwise ->
-              go (Doc doc1 : LeaveFlexGroup : stk) state
-                { flexGroup = Just $ storeState (Doc doc1 : stk) state
-                , buffer = Buffer.branch state.buffer
-                }
-        FlexAlt flexDoc doc1
-          | isJust state.flexGroup ->
-              go (Doc flexDoc : stk) state
-          | otherwise ->
-              go (Doc doc1 : stk) state
+        FlexGroup doc1 -> case state.flexGroup of
+          NoFlexGroup ->
+            go (Doc doc1 : LeaveFlexGroup : stk) state
+              { flexGroup = FlexGroupOpen
+              }
+          _ ->
+            go (Doc doc1 : stk) state
+        FlexAlt flexDoc doc1 -> case state.flexGroup of
+          FlexGroupReset _ ->
+            go (Doc flexDoc : stk) state
+          FlexGroupOpen | state.position.ribbonWidth > 0 ->
+            go (Doc flexDoc : stk) state
+              { flexGroup = FlexGroupReset $ storeState (Doc doc1 : stk) state
+              , buffer = Buffer.branch state.buffer
+              }
+          _ ->
+            go (Doc doc1 : stk) state
         WithPosition k
           | state.position.column == 0 && state.indent > state.position.indent -> do
               let
@@ -388,7 +402,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           go stk state
       LeaveFlexGroup ->
         go stk state
-          { flexGroup = Nothing
+          { flexGroup = NoFlexGroup
           , buffer = Buffer.commit state.buffer
           }
       Dedent indSpaces ind ->

@@ -1,0 +1,20 @@
+out: a
+out: b
+out: c
+out: d
+abcd
+out: a
+out: b
+out: c
+out: e
+abce
+out: a
+out: b
+out: c
+out: d
+abcd
+out: a
+out: b
+out: c
+out: e
+abce
