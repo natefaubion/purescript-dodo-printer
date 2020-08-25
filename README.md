@@ -7,10 +7,6 @@ the Wadler/Leijen style but with all the names gratuitously changed.
 
 It also provides nice ANSI integration.
 
-## Examples
-
-* Colorful, flexible JSON printer ([code](test/snapshots/DodoExampleJson.purs), [output](test/snapshots/DodoExampleJson.output))
-
 ## Getting Started
 
 The core type of `Dodo` is `Doc`, which represents a document. It has one
