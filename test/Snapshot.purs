@@ -2,6 +2,7 @@ module Test.Snapshot where
 
 import Prelude
 
+import Control.MonadZero (guard)
 import Control.Parallel (parTraverse)
 import Data.Array (mapMaybe)
 import Data.Array as Array
@@ -10,6 +11,7 @@ import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Posix.Signal (Signal(..))
 import Data.String (Pattern(..))
+import Data.String as String
 import Data.String.CodeUnits (stripSuffix)
 import Effect (Effect)
 import Effect.AVar as EffectAVar
@@ -46,18 +48,25 @@ isBad = case _ of
   ErrorRunningTest _ -> true
   _ -> false
 
-snapshotMainOutput :: String -> Boolean -> Aff (Array SnapshotTest)
-snapshotMainOutput directory accept = do
+snapshotMainOutput :: String -> Boolean -> Maybe Pattern -> Aff (Array SnapshotTest)
+snapshotMainOutput directory accept mbPattern = do
   paths <- readdir directory
   block <- AVar.empty
   for_ (Array.range 1 4) \_ -> do
     liftEffect $ EffectAVar.put unit block mempty
-  flip parTraverse (mapMaybe (stripSuffix (Pattern ".purs") <<< basename) paths) \name -> do
+  flip parTraverse (pursPaths paths) \name -> do
     AVar.take block
     result <- runSnapshot name
     _ <- liftEffect $ EffectAVar.put unit block mempty
     pure result
   where
+  pursPaths =
+    mapMaybe (filterPath <=< stripSuffix (Pattern ".purs") <<< basename)
+
+  filterPath = case mbPattern of
+    Just pat -> \path -> guard (String.contains pat path) $> path
+    Nothing -> pure
+
   makeErrorResult :: String -> Error -> Aff SnapshotTest
   makeErrorResult name err = pure { name, output: "", result: ErrorRunningTest err }
 

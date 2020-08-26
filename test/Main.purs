@@ -3,7 +3,9 @@ module Test.Main where
 import Prelude
 
 import Ansi.Output (foreground, withGraphics)
-import Data.Foldable (any, for_)
+import Data.Foldable (any, findMap, for_)
+import Data.String (Pattern(..))
+import Data.String as String
 import Dodo.Ansi (Color(..))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -18,8 +20,9 @@ main = do
   args <- Process.argv
   let accept = any (eq "--accept" || eq "-a") args
   let printOutput = any (eq "--print-output" || eq "-p") args
+  let filter = Pattern <$> findMap (String.stripPrefix (Pattern "--filter=")) args
   launchAff_ do
-    results <- snapshotMainOutput "./test/snapshots" accept
+    results <- snapshotMainOutput "./test/snapshots" accept filter
     for_ results \{ name, output, result } -> case result of
       Passed -> do
         Console.log $ withGraphics (foreground Green) "✓" <> " " <> name <> " passed."
