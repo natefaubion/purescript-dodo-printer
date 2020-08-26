@@ -64,7 +64,7 @@ align n doc
 
 -- | Increases the indentation level so that it aligns to the current column.
 alignCurrentColumn :: forall a. Doc a -> Doc a
-alignCurrentColumn doc = withPosition \pos -> align (pos.column - pos.indent) doc
+alignCurrentColumn = notEmpty \doc -> withPosition \pos -> align (pos.column - pos.indent) doc
 
 -- | Adds an annotation to a document. Printers can interpret annotations to style
 -- | their output, eg. ANSI colors.
@@ -293,7 +293,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
   ribbonRatio = max 0.0 (min 1.0 opts.ribbonRatio)
 
   calcRibbonWidth :: Int -> Int
-  calcRibbonWidth = max 0 <<< Int.ceil <<< mul ribbonRatio <<< Int.toNumber
+  calcRibbonWidth = max 0 <<< Int.ceil <<< mul ribbonRatio <<< Int.toNumber <<< (opts.pageWidth - _)
 
   initState :: DocState b a
   initState =
@@ -302,7 +302,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         , column: 0
         , indent: 0
         , pageWidth: opts.pageWidth
-        , ribbonWidth: calcRibbonWidth opts.pageWidth
+        , ribbonWidth: calcRibbonWidth 0
         }
     , buffer: Buffer.new printer.emptyBuffer
     , annotations: List.Nil
@@ -322,11 +322,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         Text len str
           | state.position.column == 0 && state.indent > 0 ->
               go stack state
-                { position
-                    { column = state.indent
-                    , indent = state.indent
-                    , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
-                    }
+                { position { column = state.indent }
                 , buffer = Buffer.modify (printer.writeIndent state.indent state.indentSpaces) state.buffer
                 }
           | state.position.column + len <= state.position.indent + state.position.ribbonWidth ->
@@ -352,14 +348,29 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
               }
           _ ->
             go stk state
-              { position { line = state.position.line + 1, column = 0 }
+              { position
+                  { line = state.position.line + 1
+                  , column = 0
+                  , indent = state.indent
+                  , ribbonWidth = calcRibbonWidth state.indent
+                  }
               , buffer = Buffer.modify printer.writeBreak state.buffer
               }
-        Indent doc1 ->
-          go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
-            { indent = state.indent + opts.indentWidth
-            , indentSpaces = state.indentSpaces <> opts.indentUnit
-            }
+        Indent doc1
+          | state.position.column == 0 ->
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { position
+                    { indent = state.indent
+                    , ribbonWidth = calcRibbonWidth state.indent
+                    }
+                , indent = state.indent + opts.indentWidth
+                , indentSpaces = state.indentSpaces <> opts.indentUnit
+                }
+          | otherwise ->
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { indent = state.indent + opts.indentWidth
+                , indentSpaces = state.indentSpaces <> opts.indentUnit
+                }
         Align width doc1 ->
           go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
             { indent = state.indent + width
@@ -383,12 +394,12 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           _ ->
             go (Doc doc1 : stk) state
         WithPosition k
-          | state.position.column == 0 && state.indent > state.position.indent -> do
+          | state.position.column == 0 && state.indent > 0 -> do
               let
                 renderPosition = state.position
                   { column = state.indent
                   , indent = state.indent
-                  , ribbonWidth = calcRibbonWidth (opts.pageWidth - state.indent)
+                  , ribbonWidth = calcRibbonWidth state.indent
                   }
               go (Doc (k renderPosition) : stk) state
           | otherwise ->
