@@ -14,7 +14,7 @@ type parameter which represents an annotation. Annotations let you mark parts
 of your document tree with things such as styles and colors (e.g. `Dodo.Ansi`
 for ANSI graphics). `Doc`s which don't use annotations can use a type
 variable or `Void`. The most primitive ways to construct and manipulate
-`Doc`s is via `text` and `Monoid`.
+`Doc`s are via `text` and `Monoid`.
 
 ```purescript
 import Prelude
