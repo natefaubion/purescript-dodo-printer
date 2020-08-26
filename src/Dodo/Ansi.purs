@@ -18,7 +18,8 @@ import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..), fromMaybe, isNothing)
 import Dodo (Doc, Printer(..), annotate)
 
--- | Resets all styles for a document, removing any cascading annotations.
+-- | Resets all cascading styles for a document so that outer styles won't
+-- | interfere with inner styles.
 reset :: Doc Ansi.GraphicsParam -> Doc Ansi.GraphicsParam
 reset = annotate Ansi.Reset
 
