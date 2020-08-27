@@ -342,10 +342,6 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         Break -> case state.flexGroup of
           FlexGroupReset frame ->
             go frame.stack $ resetState frame
-          FlexGroupOpen ->
-            go stack state
-              { flexGroup = NoFlexGroup
-              }
           _ ->
             go stk state
               { position
@@ -355,13 +351,14 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                   , ribbonWidth = calcRibbonWidth state.indent
                   }
               , buffer = Buffer.modify printer.writeBreak state.buffer
+              , flexGroup = NoFlexGroup
               }
         Indent doc1
           | state.position.column == 0 ->
               go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
                 { position
-                    { indent = state.indent
-                    , ribbonWidth = calcRibbonWidth state.indent
+                    { indent = state.indent + opts.indentWidth
+                    , ribbonWidth = calcRibbonWidth (state.indent + opts.indentWidth)
                     }
                 , indent = state.indent + opts.indentWidth
                 , indentSpaces = state.indentSpaces <> opts.indentUnit
@@ -371,11 +368,21 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                 { indent = state.indent + opts.indentWidth
                 , indentSpaces = state.indentSpaces <> opts.indentUnit
                 }
-        Align width doc1 ->
-          go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
-            { indent = state.indent + width
-            , indentSpaces = state.indentSpaces <> power " " width
-            }
+        Align width doc1
+          | state.position.column == 0 ->
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { position
+                    { indent = state.indent + width
+                    , ribbonWidth = calcRibbonWidth (state.indent + width)
+                    }
+                , indent = state.indent + width
+                , indentSpaces = state.indentSpaces <> power " " width
+                }
+          | otherwise ->
+              go (Doc doc1 : Dedent state.indentSpaces state.indent : stk) state
+                { indent = state.indent + width
+                , indentSpaces = state.indentSpaces <> power " " width
+                }
         FlexGroup doc1 -> case state.flexGroup of
           NoFlexGroup ->
             go (Doc doc1 : LeaveFlexGroup : stk) state
@@ -394,14 +401,8 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           _ ->
             go (Doc doc1 : stk) state
         WithPosition k
-          | state.position.column == 0 && state.indent > 0 -> do
-              let
-                renderPosition = state.position
-                  { column = state.indent
-                  , indent = state.indent
-                  , ribbonWidth = calcRibbonWidth state.indent
-                  }
-              go (Doc (k renderPosition) : stk) state
+          | state.position.column == 0 && state.indent > 0 ->
+              go (Doc (k state.position { column = state.indent }) : stk) state
           | otherwise ->
               go (Doc (k state.position) : stk) state
         Annotate ann doc1 ->
