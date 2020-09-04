@@ -7,6 +7,7 @@ type Position =
   { line :: Int
   , column :: Int
   , indent :: Int
+  , nextIndent :: Int
   , pageWidth :: Int
   , ribbonWidth :: Int
   }
