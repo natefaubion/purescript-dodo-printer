@@ -386,6 +386,11 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             go (Doc doc1 : LeaveFlexGroup : stk) state
               { flexGroup = FlexGroupOpen
               }
+          FlexGroupOpen | state.position.ribbonWidth > 0 ->
+            go (Doc doc1 : stk) state
+              { flexGroup = FlexGroupReset $ storeState stack state
+              , buffer = Buffer.branch state.buffer
+              }
           _ ->
             go (Doc doc1 : stk) state
         FlexAlt flexDoc doc1 -> case state.flexGroup of

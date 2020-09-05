@@ -10,6 +10,7 @@ out: e
 abce
 out: a
 out: b
+out: b
 out: c
 out: d
 abcd
@@ -18,3 +19,17 @@ out: b
 out: c
 out: e
 abce
+out: a
+out: b
+out: c
+out: d
+out: e
+out: b
+out: c
+out: d
+out: e
+out: e
+out: f
+out: g
+* a b c d
+  e f g
