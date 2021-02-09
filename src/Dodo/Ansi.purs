@@ -145,7 +145,7 @@ ansiGraphics = Printer
   getCurrentGraphics :: List Ansi.GraphicsParam -> List Ansi.GraphicsParam
   getCurrentGraphics =
     List.takeWhile (_ /= Ansi.Reset)
-      >>> List.nubBy graphicsConflict
+      >>> List.nubByEq graphicsConflict
       >>> List.reverse
 
   getPendingGraphics :: List Ansi.GraphicsParam -> Maybe (NonEmptyList Ansi.GraphicsParam)
