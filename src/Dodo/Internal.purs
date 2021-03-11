@@ -20,7 +20,7 @@ data Doc a
   | Indent (Doc a)
   | Align Int (Doc a)
   | Annotate a (Doc a)
-  | FlexGroup (Doc a)
+  | FlexSelect (Doc a) (Doc a) (Doc a)
   | FlexAlt (Doc a) (Doc a)
   | WithPosition (Position -> Doc a)
   | Text Int String

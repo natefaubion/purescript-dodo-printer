@@ -20,6 +20,7 @@ module Dodo
   , appendSpaceBreak
   , flexAlt
   , flexGroup
+  , flexSelect
   , paragraph
   , textParagraph
   , enclose
@@ -72,11 +73,20 @@ annotate :: forall a. a -> Doc a -> Doc a
 annotate = notEmpty <<< Annotate
 
 -- | Attempts to layout the document with flex alternatives, falling back
--- | to defaults if they don't fit the page width.
+-- | to defaults if it doesn't fit the page width.
 flexGroup :: forall a. Doc a -> Doc a
 flexGroup = notEmpty case _ of
-  doc@(FlexGroup _) -> doc
-  doc -> FlexGroup doc
+  doc@(FlexSelect _ a b) | isEmpty a && isEmpty b -> doc
+  doc -> FlexSelect doc Empty Empty
+
+-- | Attempts to layout the first document with flex alternatives, falling
+-- | back to defaults if it doesn't fit the page width. If the flex alternatives
+-- | are used then the second document will be appended, otherwise the third
+-- | document will be appended.
+flexSelect :: forall a. Doc a -> Doc a -> Doc a -> Doc a
+flexSelect doc1 doc2 doc3
+  | isEmpty doc1 = doc2
+  | otherwise = FlexSelect doc1 doc2 doc3
 
 -- | Attempts to layout the first document when in a flex group, falling back
 -- | to the second as a default.
@@ -244,11 +254,11 @@ data DocCmd a
   = Doc (Doc a)
   | Dedent String Int
   | LeaveAnnotation a (List a)
-  | LeaveFlexGroup
+  | LeaveFlexGroup (Doc a) (Doc a)
 
 data FlexGroupStatus b a
   = NoFlexGroup
-  | FlexGroupOpen
+  | FlexGroupPending
   | FlexGroupReset (FlexGroupState b a)
 
 type FlexGroupState b a =
@@ -381,12 +391,12 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                 { position { nextIndent = state.position.nextIndent + width }
                 , indentSpaces = state.indentSpaces <> power " " width
                 }
-        FlexGroup doc1 -> case state.flexGroup of
+        FlexSelect doc1 doc2 doc3 -> case state.flexGroup of
           NoFlexGroup ->
-            go (Doc doc1 : LeaveFlexGroup : stk) state
-              { flexGroup = FlexGroupOpen
+            go (Doc doc1 : LeaveFlexGroup doc2 doc3 : stk) state
+              { flexGroup = FlexGroupPending
               }
-          FlexGroupOpen | state.position.ribbonWidth > 0 ->
+          FlexGroupPending | state.position.ribbonWidth > 0 ->
             go (Doc doc1 : stk) state
               { flexGroup = FlexGroupReset $ storeState stack state
               , buffer = Buffer.branch state.buffer
@@ -396,7 +406,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         FlexAlt flexDoc doc1 -> case state.flexGroup of
           FlexGroupReset _ ->
             go (Doc flexDoc : stk) state
-          FlexGroupOpen | state.position.ribbonWidth > 0 ->
+          FlexGroupPending | state.position.ribbonWidth > 0 ->
             go (Doc flexDoc : stk) state
               { flexGroup = FlexGroupReset $ storeState (Doc doc1 : stk) state
               , buffer = Buffer.branch state.buffer
@@ -415,11 +425,16 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             }
         Empty ->
           go stk state
-      LeaveFlexGroup ->
-        go stk state
-          { flexGroup = NoFlexGroup
-          , buffer = Buffer.commit state.buffer
-          }
+      LeaveFlexGroup doc1 doc2 -> case state.flexGroup of
+        NoFlexGroup ->
+          go (Doc doc2 : stk) state
+            { buffer = Buffer.commit state.buffer
+            }
+        _ ->
+          go (Doc doc1 : stk) state
+            { flexGroup = NoFlexGroup
+            , buffer = Buffer.commit state.buffer
+            }
       Dedent indSpaces ind ->
         go stk state
           { position { nextIndent = ind }
