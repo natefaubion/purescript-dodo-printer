@@ -1,0 +1,31 @@
+foo bar { prop = 42 } baz \a -> a
+foo bar { prop = 42 } baz \a ->
+  a
+foo bar { prop = 42 }
+  baz
+  \a -> a
+foo
+  bar { prop = 42 }
+  baz
+  \a -> a
+foo
+  bar
+    { prop = 42
+    }
+  baz
+  \a -> a
+foo
+  bar
+    { prop =
+      42
+    }
+  baz
+  \a -> a
+foo
+  bar
+    { prop =
+      42
+    }
+  baz
+  \a ->
+    a
