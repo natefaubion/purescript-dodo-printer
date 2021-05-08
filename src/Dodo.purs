@@ -240,11 +240,11 @@ type PrintOptions =
 
 -- | Prints 2-space indents, with a default 80-column page width.
 twoSpaces :: PrintOptions
-twoSpaces = { pageWidth: 80, ribbonRatio: 1.0, indentUnit: "  ", indentWidth: 2 }
+twoSpaces = { pageWidth: 80, ribbonRatio: 1.0, indentUnit: " ", indentWidth: 2 }
 
 -- | Prints 4-space indents, with a default 120-column page width.
 fourSpaces :: PrintOptions
-fourSpaces = { pageWidth: 120, ribbonRatio: 1.0, indentUnit: "    ", indentWidth: 4 }
+fourSpaces = { pageWidth: 120, ribbonRatio: 1.0, indentUnit: " ", indentWidth: 4 }
 
 -- | Prints tab indents (4-wide), with a default 120-column page width.
 tabs :: PrintOptions
