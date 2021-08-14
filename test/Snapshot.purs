@@ -84,7 +84,7 @@ snapshotMainOutput directory accept mbPattern = do
             writeFile outputFile =<< liftEffect (Buffer.fromString output UTF8)
         savedOutput <- try $ readFile outputFile
         case savedOutput of
-          Left err -> do
+          Left _ -> do
             acceptOutput
             pure { name, output, result: Saved }
           Right buffer -> do

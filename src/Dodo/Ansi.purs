@@ -118,7 +118,7 @@ ansiGraphics = Printer
       }
 
   leaveAnnotation :: Ansi.GraphicsParam -> List Ansi.GraphicsParam -> AnsiBuffer -> AnsiBuffer
-  leaveAnnotation a as (AnsiBuffer buffer) = do
+  leaveAnnotation _ as (AnsiBuffer buffer) = do
     let current = getCurrentGraphics as
     AnsiBuffer buffer
       { pending = Just $ fromMaybe (pure Ansi.Reset) $ getPendingGraphics current

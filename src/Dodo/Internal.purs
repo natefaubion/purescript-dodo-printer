@@ -23,9 +23,19 @@ data Doc a
   | FlexSelect (Doc a) (Doc a) (Doc a)
   | FlexAlt (Doc a) (Doc a)
   | WithPosition (Position -> Doc a)
+  | Local (LocalOptions -> LocalOptions) (Doc a)
   | Text Int String
   | Break
   | Empty
+
+type LocalOptions =
+  { indent :: Int
+  , indentSpaces :: String
+  , indentUnit :: String
+  , indentWidth :: Int
+  , pageWidth :: Int
+  , ribbonRatio :: Number
+  }
 
 derive instance functorDoc :: Functor Doc
 

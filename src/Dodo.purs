@@ -28,6 +28,7 @@ module Dodo
   , encloseWithSeparator
   , foldWithSeparator
   , foldWith
+  , locally
   , print
   , Printer(..)
   , plainText
@@ -48,7 +49,7 @@ import Data.String as String
 import Data.String.Regex as Regex
 import Data.String.Regex.Flags (global)
 import Data.String.Regex.Unsafe (unsafeRegex)
-import Dodo.Internal (Doc(..), Position, bothNotEmpty, isEmpty, notEmpty)
+import Dodo.Internal (Doc(..), Position, LocalOptions, bothNotEmpty, isEmpty, notEmpty)
 import Dodo.Internal (Doc, Position, bothNotEmpty, isEmpty, notEmpty) as Exports
 import Dodo.Internal.Buffer (Buffer)
 import Dodo.Internal.Buffer as Buffer
@@ -193,6 +194,11 @@ foldWithSeparator separator = foldWith (\a b -> a <> (separator <> b))
 foldWith :: forall f a. Foldable f => (Doc a -> Doc a -> Doc a) -> f (Doc a) -> Doc a
 foldWith f = foldr (bothNotEmpty f) mempty
 
+-- | *EXPERIMENTAL:* modifies printing state and options locally for a document.
+-- | This may change or be removed at any time.
+locally :: forall a. (LocalOptions -> LocalOptions) -> Doc a -> Doc a
+locally = Local
+
 -- | Custom printers can be used to render richer documents than just plain
 -- | text.
 -- | * `emptyBuffer` - The initial buffer.
@@ -255,6 +261,7 @@ data DocCmd a
   | Dedent String Int
   | LeaveAnnotation a (List a)
   | LeaveFlexGroup (Doc a) (Doc a)
+  | LeaveLocal LocalOptions
 
 data FlexGroupStatus b a
   = NoFlexGroup
@@ -267,6 +274,7 @@ type FlexGroupState b a =
   , annotations :: List a
   , indentSpaces :: String
   , stack :: List (DocCmd a)
+  , options :: PrintOptions
   }
 
 type DocState b a =
@@ -275,15 +283,39 @@ type DocState b a =
   , annotations :: List a
   , indentSpaces :: String
   , flexGroup :: FlexGroupStatus b a
+  , options :: PrintOptions
   }
 
 resetState :: forall a b. FlexGroupState b a -> DocState b a
-resetState { position, buffer, annotations, indentSpaces } =
-  { position, buffer, annotations, indentSpaces, flexGroup: NoFlexGroup }
+resetState { position, buffer, annotations, indentSpaces, options } =
+  { position, buffer, annotations, indentSpaces, flexGroup: NoFlexGroup, options }
 
 storeState :: forall a b. List (DocCmd a) -> DocState b a -> FlexGroupState b a
-storeState stack { position, buffer, annotations, indentSpaces } =
-  { position, buffer, annotations, indentSpaces, stack }
+storeState stack { position, buffer, annotations, indentSpaces, options } =
+  { position, buffer, annotations, indentSpaces, stack, options }
+
+storeOptions :: forall a b. Int -> LocalOptions -> DocState b a -> DocState b a
+storeOptions prevIndent localOptions state = do
+  let
+    newOptions =
+      { indentUnit: localOptions.indentUnit
+      , indentWidth: localOptions.indentWidth
+      , pageWidth: localOptions.pageWidth
+      , ribbonRatio: localOptions.ribbonRatio
+      }
+  state
+    { indentSpaces = localOptions.indentSpaces
+    , options = newOptions
+    , position
+        { pageWidth = newOptions.pageWidth
+        , ribbonWidth = calcRibbonWidth newOptions prevIndent
+        , nextIndent = localOptions.indent
+        }
+    }
+
+calcRibbonWidth :: PrintOptions -> Int -> Int
+calcRibbonWidth { pageWidth, ribbonRatio } n =
+  max 0 $ Int.ceil $ mul ribbonRatio $ Int.toNumber $ pageWidth - n
 
 -- | Prints a documents given a printer and print options.
 -- |
@@ -297,11 +329,8 @@ storeState stack { position, buffer, annotations, indentSpaces } =
 print :: forall b a r. Printer b a r -> PrintOptions -> Doc a -> r
 print (Printer printer) opts = flip go initState <<< pure <<< Doc
   where
-  ribbonRatio :: Number
-  ribbonRatio = max 0.0 (min 1.0 opts.ribbonRatio)
-
-  calcRibbonWidth :: Int -> Int
-  calcRibbonWidth = max 0 <<< Int.ceil <<< mul ribbonRatio <<< Int.toNumber <<< (opts.pageWidth - _)
+  initOptions :: PrintOptions
+  initOptions = opts { ribbonRatio = max 0.0 (min 1.0 opts.ribbonRatio) }
 
   initState :: DocState b a
   initState =
@@ -310,13 +339,14 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
         , column: 0
         , indent: 0
         , nextIndent: 0
-        , pageWidth: opts.pageWidth
-        , ribbonWidth: calcRibbonWidth 0
+        , pageWidth: initOptions.pageWidth
+        , ribbonWidth: calcRibbonWidth initOptions 0
         }
     , buffer: Buffer.new printer.emptyBuffer
     , annotations: List.Nil
     , indentSpaces: ""
     , flexGroup: NoFlexGroup
+    , options: initOptions
     }
 
   go :: List (DocCmd a) -> DocState b a -> r
@@ -356,7 +386,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                   { line = state.position.line + 1
                   , column = 0
                   , indent = state.position.nextIndent
-                  , ribbonWidth = calcRibbonWidth state.position.nextIndent
+                  , ribbonWidth = calcRibbonWidth state.options state.position.nextIndent
                   }
               , buffer = Buffer.modify printer.writeBreak state.buffer
               , flexGroup = NoFlexGroup
@@ -367,7 +397,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                 { position
                     { indent = state.position.nextIndent + opts.indentWidth
                     , nextIndent = state.position.nextIndent + opts.indentWidth
-                    , ribbonWidth = calcRibbonWidth (state.position.nextIndent + opts.indentWidth)
+                    , ribbonWidth = calcRibbonWidth state.options (state.position.nextIndent + opts.indentWidth)
                     }
                 , indentSpaces = state.indentSpaces <> opts.indentUnit
                 }
@@ -382,7 +412,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
                 { position
                     { indent = state.position.nextIndent + width
                     , nextIndent = state.position.nextIndent + width
-                    , ribbonWidth = calcRibbonWidth (state.position.nextIndent + width)
+                    , ribbonWidth = calcRibbonWidth state.options (state.position.nextIndent + width)
                     }
                 , indentSpaces = state.indentSpaces <> power " " width
                 }
@@ -423,6 +453,18 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             { annotations = ann : state.annotations
             , buffer = Buffer.modify (printer.enterAnnotation ann state.annotations) state.buffer
             }
+        Local k doc1 -> do
+          let
+            prevOptions =
+              { indent: state.position.indent
+              , indentSpaces: state.indentSpaces
+              , indentUnit: state.options.indentUnit
+              , indentWidth: state.options.indentWidth
+              , pageWidth: state.options.pageWidth
+              , ribbonRatio: state.options.ribbonRatio
+              }
+            localOptions = k prevOptions
+          go (Doc doc1 : LeaveLocal prevOptions: stk) $ storeOptions state.position.indent localOptions state
         Empty ->
           go stk state
       LeaveFlexGroup doc1 doc2 -> case state.flexGroup of
@@ -445,3 +487,5 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
           { annotations = anns
           , buffer = Buffer.modify (printer.leaveAnnotation ann anns) state.buffer
           }
+      LeaveLocal prevOptions ->
+        go stk $ storeOptions state.position.indent prevOptions state
