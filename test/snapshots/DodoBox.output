@@ -1,24 +1,24 @@
-[0;1mExample JSON[0m
-[0;2m------------------------------------------------------------------------------------------------[0m
-{                                                                                               
-  [0;33m"bool"[0m: [0;34mtrue[0m,                                                           [0;1mNOTE[0m                  
-  [0;33m"string"[0m: [0;31m"bar"[0m,                                      [0;3mVestibulum ante ipsum primis in faucibus[0m
-  [0;33m"number"[0m: [0;32m1234.0[0m,                                     [0;3morci luctus et ultrices posuere cubilia[0m 
-  [0;33m"array"[0m: [[0;2mnull[0m, [0;31m"two"[0m, [[0;31m"three"[0m]],                    [0;3mcurae; Suspendisse eget tortor eget[0m     
-  [0;33m"object"[0m: {},                                         [0;3msapien tincidunt vestibulum eu a velit.[0m 
-  [0;33m"wideObject"[0m: {                                       [0;3mPellentesque eu tortor ut lectus sodales[0m
-    [0;33m"key"[0m: [0;31m"1111111111111111111111111111111111111111"[0m   [0;3mornare.[0m                                 
-  }                                                                                             
-}                                                                                               
 Example JSON
-------------------------------------------------------------------------------------------------
-{                                                                                               
-  "bool": true,                                                           NOTE                  
-  "string": "bar",                                      Vestibulum ante ipsum primis in faucibus
-  "number": 1234.0,                                     orci luctus et ultrices posuere cubilia 
-  "array": [null, "two", ["three"]],                    curae; Suspendisse eget tortor eget     
-  "object": {},                                         sapien tincidunt vestibulum eu a velit. 
-  "wideObject": {                                       Pellentesque eu tortor ut lectus sodales
-    "key": "1111111111111111111111111111111111111111"   ornare.                                 
-  }                                                                                             
-}                                                                                               
+------------------------------------------------------------------------------------
+{                                                                                   
+  "bool": true,                                                                     
+  "string": "bar",                                                  NOTE            
+  "number": 1234.0,                                     Vestibulum ante ipsum primis
+  "array": [null, "two", ["three"]],                    in faucibus orci luctus et  
+  "object": {},                                         ultrices posuere cubilia    
+  "wideObject": {                                       curae; Suspendisse eget     
+    "key": "1111111111111111111111111111111111111111"   tortor.                     
+  }                                                                                 
+}                                                                                   
+[0;1mExample JSON[0m
+[0;2m------------------------------------------------------------------------------------[0m
+{                                                                                   
+  [0;33m"bool"[0m: [0;34mtrue[0m,                                                                     
+  [0;33m"string"[0m: [0;31m"bar"[0m,                                                  [0;1mNOTE[0m            
+  [0;33m"number"[0m: [0;32m1234.0[0m,                                     [0;3mVestibulum ante ipsum primis[0m
+  [0;33m"array"[0m: [[0;2mnull[0m, [0;31m"two"[0m, [[0;31m"three"[0m]],                    [0;3min faucibus orci luctus et[0m  
+  [0;33m"object"[0m: {},                                         [0;3multrices posuere cubilia[0m    
+  [0;33m"wideObject"[0m: {                                       [0;3mcurae; Suspendisse eget[0m     
+    [0;33m"key"[0m: [0;31m"1111111111111111111111111111111111111111"[0m   [0;3mtortor.[0m                     
+  }                                                                                 
+}                                                                                   

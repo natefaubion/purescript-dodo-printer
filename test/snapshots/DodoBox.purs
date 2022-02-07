@@ -14,24 +14,11 @@ import DodoExampleJson (exampleJson, printJson)
 import Effect (Effect)
 import Effect.Class.Console as Console
 
-para1 :: forall a. Doc a
-para1 = textParagraph
-  """
-  Quisque finibus tellus non molestie porta. In non posuere metus, vitae
-  tincidunt enim. Nam quis elit pharetra, elementum elit lacinia, efficitur
-  nibh. Cras lobortis neque sed ante ornare rutrum. Maecenas sed urna nisl.
-  Phasellus aliquam finibus ex vitae iaculis. Vestibulum ante ipsum primis
-  in faucibus orci luctus et ultrices posuere cubilia curae; Suspendisse
-  eget tortor eget sapien tincidunt vestibulum eu a velit. Pellentesque eu
-  tortor ut lectus sodales ornare.
-  """
-
 para2 :: forall a. Doc a
 para2 = textParagraph
   """
   Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
-  cubilia curae; Suspendisse eget tortor eget sapien tincidunt vestibulum eu a
-  velit. Pellentesque eu tortor ut lectus sodales ornare.
+  cubilia curae; Suspendisse eget tortor.
   """
 
 textBox :: forall a. Int -> Doc a -> DocBox a
@@ -56,7 +43,7 @@ test = Box.toDoc do
         [ textBox 40 (printJson exampleJson)
         , valign Middle $ vertical
             [ halign Middle $ textBox 40 (Ansi.bold (Dodo.text "NOTE"))
-            , textBox 40 (Ansi.italic para2)
+            , textBox 30 (Ansi.italic para2)
             ]
         ]
     )
