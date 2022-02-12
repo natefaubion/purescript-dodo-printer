@@ -356,10 +356,7 @@ build = (\size next box -> go (BuildEnter size next box) BuildNil)
         BuildVAppR width boxa stk ->
           go (BuildEnter (FullWidth width) step boxa) stk
         BuildHAppR height boxa next stk ->
-          go (BuildEnter (FullHeight height) StpDone boxa)
-            ( BuildHAppH step next
-                stk
-            )
+          go (BuildEnter (FullHeight height) StpDone boxa) (BuildHAppH step next stk)
         BuildHAppH stepb next stk ->
           go (BuildLeave (StpHorz step stepb next)) stk
         BuildNil ->
