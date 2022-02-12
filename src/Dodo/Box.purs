@@ -120,8 +120,6 @@ vappend = case _, _ of
   a, DocEmpty -> a
   DocPad sizea, DocPad sizeb ->
     DocPad (scale sizea sizeb)
-  DocVApp a b _, c ->
-    vappend a (vappend b c)
   a, b ->
     DocVApp a b (scale (sizeOf a) (sizeOf b))
   where
@@ -137,8 +135,6 @@ happend = case _, _ of
   a, DocEmpty -> a
   DocPad sizea, DocPad sizeb ->
     DocPad (scale sizea sizeb)
-  DocHApp a b _, c ->
-    happend a (happend b c)
   a, b -> do
     DocHApp a b (scale (sizeOf a) (sizeOf b))
   where
