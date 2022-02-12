@@ -14,6 +14,7 @@ module Dodo.Box
   , verticalWithAlign
   , horizontal
   , horizontalWithAlign
+  , resize
   , fill
   , vpadding
   , hpadding
@@ -33,7 +34,7 @@ import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Monoid (power)
-import Data.Newtype (class Newtype, un, under)
+import Data.Newtype (class Newtype, under)
 import Dodo (Doc, Printer(..), annotate)
 import Dodo as Dodo
 import Dodo.Internal as Internal
@@ -65,6 +66,7 @@ data DocBox a
   | DocVApp (DocBox a) (DocBox a) BoxSize
   | DocHApp (DocBox a) (DocBox a) BoxSize
   | DocAlign Align Align (DocBox a)
+  | DocPad BoxSize
   | DocEmpty
 
 derive instance Functor DocBox
@@ -116,26 +118,34 @@ vappend :: forall a. DocBox a -> DocBox a -> DocBox a
 vappend = case _, _ of
   DocEmpty, b -> b
   a, DocEmpty -> a
-  a, b -> do
-    let sizea = sizeOf a
-    let sizeb = sizeOf b
-    DocVApp a b
-      { width: max sizea.width sizeb.width
-      , height: sizea.height + sizeb.height
-      }
+  DocPad sizea, DocPad sizeb ->
+    DocPad (scale sizea sizeb)
+  DocVApp a b _, c ->
+    vappend a (vappend b c)
+  a, b ->
+    DocVApp a b (scale (sizeOf a) (sizeOf b))
+  where
+  scale sizea sizeb =
+    { width: max sizea.width sizeb.width
+    , height: sizea.height + sizeb.height
+    }
 
 -- | Joins two DocBoxes horizontally next to each other.
 happend :: forall a. DocBox a -> DocBox a -> DocBox a
 happend = case _, _ of
   DocEmpty, b -> b
   a, DocEmpty -> a
+  DocPad sizea, DocPad sizeb ->
+    DocPad (scale sizea sizeb)
+  DocHApp a b _, c ->
+    happend a (happend b c)
   a, b -> do
-    let sizea = sizeOf a
-    let sizeb = sizeOf b
-    DocHApp a b
-      { width: sizea.width + sizeb.width
-      , height: max sizea.height sizeb.height
-      }
+    DocHApp a b (scale (sizeOf a) (sizeOf b))
+  where
+  scale sizea sizeb =
+    { width: sizea.width + sizeb.width
+    , height: max sizea.height sizeb.height
+    }
 
 -- | Pads a DocBox vertically to fit the tallest box within a
 -- | horizontal run.
@@ -169,6 +179,36 @@ halign b = case _ of
   other ->
     DocAlign Start b other
 
+-- | Resizes a box to a larger or equivalent size, positioning its content
+-- | according to its alignment.
+resize :: forall a. BoxSize -> DocBox a -> DocBox a
+resize newSize box = vdoc
+  where
+  box' = case box of
+    DocAlign _ _ b -> b
+    _ -> box
+  size = sizeOf box
+  hpad = newSize.width - size.width
+  vpad = newSize.height - size.height
+  hdoc
+    | hpad <= 0 = valign Start box'
+    | otherwise = padWithAlign happend hpadding hpad box (halignOf box)
+  vdoc
+    | vpad <= 0 = halign Start hdoc
+    | otherwise = padWithAlign vappend vpadding vpad hdoc (valignOf box)
+
+padWithAlign :: forall a. (a -> a -> a) -> (Int -> a) -> Int -> a -> Align -> a
+padWithAlign appendFn paddingFn padWidth doc = case _ of
+  Start ->
+    doc `appendFn` paddingFn padWidth
+  Middle -> do
+    let mid = Int.toNumber padWidth / 2.0
+    paddingFn (Int.floor mid)
+      `appendFn` doc
+      `appendFn` paddingFn (Int.ceil mid)
+  End ->
+    paddingFn padWidth `appendFn` doc
+
 -- | Fills a box to a given size with a Doc. The Doc is assumed
 -- | to be 1x1. Providing a Doc of a different size will result
 -- | in incorrect layouts.
@@ -190,11 +230,15 @@ fill ch { width, height } = under Vertical (flip power height) line
 
 -- | Vertical padding of a specific height.
 vpadding :: forall a. Int -> DocBox a
-vpadding = un Vertical <<< power (Vertical blank)
+vpadding height
+  | height <= 0 = DocEmpty
+  | otherwise = DocPad { height, width: 0 }
 
 -- | Horizontal padding of a specific width.
 hpadding :: forall a. Int -> DocBox a
-hpadding = fill (Dodo.text " ") <<< { width: _, height: 1 }
+hpadding width
+  | width <= 0 = DocEmpty
+  | otherwise = DocPad { height: 1, width }
 
 -- | Returns the size of a DocBox.
 sizeOf :: forall a. DocBox a -> BoxSize
@@ -203,6 +247,7 @@ sizeOf = case _ of
   DocVApp _ _ size -> size
   DocHApp _ _ size -> size
   DocAlign _ _ doc -> sizeOf doc
+  DocPad size -> size
   DocEmpty -> { width: 0, height: 0 }
 
 valignOf :: forall a. DocBox a -> Align
@@ -210,9 +255,10 @@ valignOf = case _ of
   DocAlign v _ _ -> v
   _ -> Start
 
--- | A blank line with 0 width.
-blank :: forall a. DocBox a
-blank = DocLine mempty 0
+halignOf :: forall a. DocBox a -> Align
+halignOf = case _ of
+  DocAlign _ h _ -> h
+  _ -> Start
 
 -- | The identity DocBox.
 empty :: forall a. DocBox a
@@ -224,212 +270,165 @@ isEmpty = case _ of
   DocEmpty -> true
   _ -> false
 
---  Converts a DocBox back into Doc for printing.
+-- | Converts a DocBox back into Doc for printing.
 toDoc :: forall a. DocBox a -> Doc a
-toDoc =
-  go1
-    <<< resume
-    <<< (\b -> build (sizeOf b).width Start StpNil b)
+toDoc = go1 <<< resume <<< build AsIs StpDone
   where
   go1 = case _ of
     Nothing -> mempty
-    Just { doc, next } ->
-      go2 doc (resume next)
+    Just { line, next } ->
+      go2 (formatLine line) (resume next)
 
   go2 acc = case _ of
     Nothing -> acc
-    Just { doc, next } ->
-      go2 (acc <> Dodo.break <> doc) (resume next)
+    Just { line, next } ->
+      go2 (acc <> Dodo.break <> formatLine line) (resume next)
 
-data DocBoxStep a
-  = StpNil
-  | StpLine (Doc a) Int Int Align (DocBoxStep a)
-  | StpVert (DocBox a) Int Align (DocBoxStep a)
-  | StpHorz (List (ColStep a)) (DocBoxStep a)
-
-type ColStep a =
-  { fullWidth :: Int
-  , next :: DocBoxStep a
-  }
-
-type DocColState a =
-  { align :: Align
-  , boxes :: List (DocBox a)
-  , fullHeight :: Int
-  , fullWidth :: Int
-  , next :: DocBoxStep a
-  , stack :: List (DocBox a)
-  , steps :: List (ColStep a)
-  }
-
-type DocBuildState a =
-  { align :: Align
-  , columnsStack :: List (DocColState a)
-  , fullWidth :: Int
-  , next :: DocBoxStep a
-  }
-
-build :: forall a. Int -> Align -> DocBoxStep a -> DocBox a -> DocBoxStep a
-build =
-  ( \fullWidth align next box ->
-      go (pure box)
-        { align
-        , columnsStack: List.Nil
-        , fullWidth
-        , next
-        }
-  )
+formatLine :: forall a. DocLine a -> Doc a
+formatLine = go mempty <<< List.singleton
   where
-  go :: List (DocBox a) -> DocBuildState a -> DocBoxStep a
-  go stack state = case stack of
-    List.Nil ->
-      case state.columnsStack of
-        c : cs -> do
-          let step = { fullWidth: state.fullWidth, next: state.next }
-          let steps = step : c.steps
-          case c.boxes of
-            b : bs ->
-              go (pure (under Vertical (padVertical c.fullHeight (valignOf b)) b))
-                { align: Start
-                , columnsStack:
-                    List.Cons
-                      { align: state.align
-                      , boxes: bs
-                      , fullHeight: c.fullHeight
-                      , fullWidth: c.fullWidth
-                      , next: c.next
-                      , stack: c.stack
-                      , steps
-                      }
-                      cs
-                , fullWidth: (sizeOf b).width
-                , next: StpNil
-                }
-            List.Nil ->
-              go c.stack
-                { align: c.align
-                , columnsStack: cs
-                , fullWidth: c.fullWidth
-                , next: StpHorz steps c.next
-                }
-        List.Nil ->
-          state.next
-    box : stk ->
-      case box of
-        DocEmpty ->
-          go stk state
-        DocLine doc w ->
-          go stk state
-            { next = StpLine doc w state.fullWidth state.align state.next
-            }
-        DocVApp a b _ ->
-          go (a : stk) state
-            { next = (StpVert b state.fullWidth state.align state.next)
-            }
-        DocHApp _ _ _ -> do
-          let fullHeight = (sizeOf box).height
-          case flatten List.Nil (pure box) of
-            b : boxes -> do
-              go (pure (under Vertical (padVertical fullHeight (valignOf b)) b))
-                { align: Start
-                , columnsStack:
-                    List.Cons
-                      { align: state.align
-                      , boxes
-                      , fullHeight
-                      , fullWidth: state.fullWidth
-                      , next: state.next
-                      , stack: stk
-                      , steps: List.Nil
-                      }
-                      state.columnsStack
-                , fullWidth: (sizeOf b).width
-                , next: StpNil
-                }
-            List.Nil ->
-              unsafeCrashWith "build: empty happend"
-        DocAlign _ align doc ->
-          go (doc : stk) state
-            { align = align
-            }
-
-  flatten :: List (DocBox a) -> List (DocBox a) -> List (DocBox a)
-  flatten acc = case _ of
-    doc : rest ->
-      case doc of
-        DocHApp a b _ ->
-          flatten acc (a : b : rest)
-        _ ->
-          flatten (doc : acc) rest
+  go acc = case _ of
     List.Nil ->
       acc
+    line : lines ->
+      case line of
+        LinePad w
+          | Dodo.isEmpty acc ->
+              go acc lines
+          | otherwise ->
+              go (power Dodo.space w <> acc) lines
+        LineDoc doc ->
+          go (doc <> acc) lines
+        LineAppend a b ->
+          go acc (b : a : lines)
 
-  padVertical :: Int -> Align -> Vertical a -> Vertical a
-  padVertical fullHeight align box@(Vertical b) = case align of
-    Start -> box
-    Middle -> do
-      let mid = Int.toNumber (fullHeight - (sizeOf b).height) / 2.0
-      power (Vertical blank) (Int.floor mid)
-        <> box
-        <> power (Vertical blank) (Int.ceil mid)
-    End ->
-      power (Vertical blank) (fullHeight - (sizeOf b).height)
-        <> box
+data DocBoxStep a
+  = StpDone
+  | StpLine (Doc a) (DocBoxStep a)
+  | StpPad Int Int (DocBoxStep a)
+  | StpHorz (DocBoxStep a) (DocBoxStep a) (DocBoxStep a)
 
-type DocGen a =
-  { doc :: Doc a
-  , width :: Int
+data DocBuildSize
+  = FullHeight Int
+  | FullWidth Int
+  | AsIs
+
+data DocBuildCmd a
+  = BuildEnter DocBuildSize (DocBoxStep a) (DocBox a)
+  | BuildLeave (DocBoxStep a)
+
+data DocBuildStk a
+  = BuildVAppR Int (DocBox a) (DocBuildStk a)
+  | BuildHAppR Int (DocBox a) (DocBoxStep a) (DocBuildStk a)
+  | BuildHAppH (DocBoxStep a) (DocBoxStep a) (DocBuildStk a)
+  | BuildNil
+
+build :: forall a. DocBuildSize -> DocBoxStep a -> DocBox a -> DocBoxStep a
+build = (\size next box -> go (BuildEnter size next box) BuildNil)
+  where
+  go cmd stack = case cmd of
+    BuildEnter size next box ->
+      case size of
+        FullHeight height ->
+          case box of
+            DocHApp a b _ ->
+              go (BuildEnter size StpDone b) (BuildHAppR height a next stack)
+            _ ->
+              go (BuildEnter AsIs next (resize { width: 0, height } box)) stack
+        FullWidth width ->
+          case box of
+            DocVApp a b _ ->
+              go (BuildEnter size next b) (BuildVAppR width a stack)
+            _ ->
+              go (BuildEnter AsIs next (resize { width, height: 0 } box)) stack
+        AsIs ->
+          case box of
+            DocVApp a b { width } ->
+              go (BuildEnter (FullWidth width) next b) (BuildVAppR width a stack)
+            DocHApp a b { height } ->
+              go (BuildEnter (FullHeight height) StpDone b) (BuildHAppR height a next stack)
+            DocAlign _ _ a ->
+              go (BuildEnter size next a) stack
+            DocLine line _ ->
+              go (BuildLeave (StpLine line next)) stack
+            DocPad padSize ->
+              go (BuildLeave (StpPad padSize.width padSize.height next)) stack
+            DocEmpty ->
+              go (BuildLeave StpDone) stack
+    BuildLeave step ->
+      case stack of
+        BuildVAppR width boxa stk ->
+          go (BuildEnter (FullWidth width) step boxa) stk
+        BuildHAppR height boxa next stk ->
+          go (BuildEnter (FullHeight height) StpDone boxa)
+            ( BuildHAppH step next
+                stk
+            )
+        BuildHAppH stepb next stk ->
+          go (BuildLeave (StpHorz step stepb next)) stk
+        BuildNil ->
+          step
+
+data DocLine a
+  = LinePad Int
+  | LineDoc (Doc a)
+  | LineAppend (DocLine a) (DocLine a)
+
+type DocProducer a =
+  { line :: DocLine a
   , next :: DocBoxStep a
   }
 
-resume :: forall a. DocBoxStep a -> Maybe (DocGen a)
-resume = case _ of
-  StpNil ->
-    Nothing
-  StpLine doc width fullWidth align next ->
-    case align of
-      Start ->
-        Just { doc, width, next }
-      Middle -> do
-        let mid = Int.toNumber (fullWidth - width) / 2.0
-        Just
-          { doc:
-              power Dodo.space (Int.floor mid)
-                <> doc
-                <> power Dodo.space (Int.ceil mid)
-          , width: fullWidth
-          , next
-          }
-      End ->
-        Just
-          { doc:
-              power Dodo.space (fullWidth - width)
-                <> doc
-          , width: fullWidth
-          , next
-          }
-  StpVert b fullWidth align next ->
-    resume (build fullWidth align next b)
-  StpHorz columns next -> do
-    let
-      go doc gens width done = case _ of
-        List.Nil
-          | done -> Nothing
-          | otherwise ->
-              Just
-                { doc
-                , width
-                , next: StpHorz (List.reverse gens) next
-                }
-        c : cs ->
-          case resume c.next of
-            Just gen -> do
-              let doc' = doc <> gen.doc <> power Dodo.space (max 0 (c.fullWidth - gen.width))
-              go doc' (c { next = gen.next } : gens) (width + c.fullWidth) false cs
-            Nothing -> do
-              let doc' = doc <> power Dodo.space c.fullWidth
-              go doc' (c { next = StpNil } : gens) (width + c.fullWidth) done cs
-    go mempty List.Nil 0 true columns
+data DocResumeCmd a
+  = ResumeEnter (DocBoxStep a)
+  | ResumeLeave (Maybe (DocProducer a))
+
+data DocResumeStk a
+  = ResumeHorzR (DocBoxStep a) (DocBoxStep a) (DocResumeStk a)
+  | ResumeHorzH (Maybe (DocProducer a)) (DocBoxStep a) (DocResumeStk a)
+  | ResumeNil
+
+resume :: forall a. DocBoxStep a -> Maybe (DocProducer a)
+resume = flip go ResumeNil <<< ResumeEnter
+  where
+  go cmd stack = case cmd of
+    ResumeEnter step ->
+      case step of
+        StpDone ->
+          go (ResumeLeave Nothing) stack
+        StpLine doc next -> do
+          go (ResumeLeave $ Just { line: LineDoc doc, next }) stack
+        StpPad width height next ->
+          if height == 0 then
+            go (ResumeEnter next) stack
+          else
+            go
+              ( ResumeLeave $ Just
+                  { line: LinePad width
+                  , next: StpPad width (height - 1) next
+                  }
+              )
+              stack
+        StpHorz a b next ->
+          go (ResumeEnter b) (ResumeHorzR a next stack)
+    ResumeLeave prod ->
+      case stack of
+        ResumeHorzR stepa next stk ->
+          go (ResumeEnter stepa) (ResumeHorzH prod next stk)
+        ResumeHorzH prodb next stk ->
+          case prod, prodb of
+            Just a, Just b ->
+              go
+                ( ResumeLeave $ Just
+                    { line: LineAppend a.line b.line
+                    , next: StpHorz a.next b.next next
+                    }
+                )
+                stk
+            _, _ ->
+              go (ResumeEnter next) stk
+        ResumeNil ->
+          prod
 
 type DocAnnStk a = List (Either a (Doc a))
 
