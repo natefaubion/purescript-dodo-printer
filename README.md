@@ -162,7 +162,14 @@ Hello,
 Dodo inserts the break and indent. "Hello, World!" on a single line would
 exceed the maximum page width, so it uses the flex default (`break`) instead.
 
+### Two-Dimensional Layouts
+
+Dodo also supports two-dimensional layouts through the `Dodo.Box` interface.
+Boxes can be joined and aligned both vertically and horizontally to create
+complex layouts such as tables or grids.
+
 ## Examples
 
 * Colorful, flexible JSON printer ([code](test/snapshots/DodoExampleJson.purs), [output](test/snapshots/DodoExampleJson.output))
 * Text paragraphs ([code](test/snapshots/DodoTextParagraph.purs), [output](test/snapshots/DodoTextParagraph.output))
+* 2D layout ([code](test/snapshots/DodoBox.purs), [output](test/snapshots/DodoBox.output))

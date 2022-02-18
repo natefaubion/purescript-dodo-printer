@@ -1,0 +1,58 @@
+Example JSON
+------------------------------------------------------------------------------------------------------------------------
+************************************************************************************************************************
+           {
+             "bool": true,
+             "string": "bar",
+             "number": 1234.0,                                                        NOTE
+             "array": [null, "two", ["three"]],                     Vestibulum ante ipsum primis in faucibus
+             "object": {},                                          orci luctus et ultrices posuere cubilia
+             "wideObject": {                                        curae; Suspendisse eget tortor.
+               "key": "1111111111111111111111111111111111111111"
+             }
+           }
+[0;1mExample JSON[0m
+[0;2m------------------------------------------------------------------------------------------------------------------------[0m
+[0;2m************************************************************************************************************************[0m
+           {
+             [0;33m"bool"[0m: [0;34mtrue[0m,
+             [0;33m"string"[0m: [0;31m"bar"[0m,
+             [0;33m"number"[0m: [0;32m1234.0[0m,                                                        [0;1mNOTE[0m
+             [0;33m"array"[0m: [[0;2mnull[0m, [0;31m"two"[0m, [[0;31m"three"[0m]],                     [0;3mVestibulum ante ipsum primis in faucibus[0m
+             [0;33m"object"[0m: {},                                          [0;3morci luctus et ultrices posuere cubilia[0m
+             [0;33m"wideObject"[0m: {                                        [0;3mcurae; Suspendisse eget tortor.[0m
+               [0;33m"key"[0m: [0;31m"1111111111111111111111111111111111111111"[0m
+             }
+           }
++---------------------------------------------------------------------+----------------------------------------------------------+
+|                               Example                               |                         Comment                          |
++---------------------------------------------------------------------+----------------------------------------------------------+
+| {                                                                   |                                                          |
+|   "bool": true,                                                     |                                                          |
+|   "string": "bar",                                                  |                                                          |
+|   "number": 1234.0,                                                 |         Vestibulum ante ipsum primis in faucibus         |
+|   "array": [null, "two", ["three"]],                                |         orci luctus et ultrices posuere cubilia          |
+|   "object": {},                                                     |         curae; Suspendisse eget tortor.                  |
+|   "wideObject": {                                                   |                                                          |
+|     "key": "1111111111111111111111111111111111111111"               |                                                          |
+|   }                                                                 |                                                          |
+| }                                                                   |                                                          |
++---------------------------------------------------------------------+----------------------------------------------------------+
+| {                                                                   |                                                          |
+|   "bool": true,                                                     |                                                          |
+|   "string": "bar",                                                  |                                                          |
+|   "number": 1234.0,                                                 | Vestibulum ante ipsum primis in faucibus orci luctus et  |
+|   "array": [null, "two", ["three"]],                                | ultrices posuere cubilia curae; Suspendisse eget tortor. |
+|   "object": {},                                                     |                                                          |
+|   "wideObject": {"key": "1111111111111111111111111111111111111111"} |                                                          |
+| }                                                                   |                                                          |
++---------------------------------------------------------------------+----------------------------------------------------------+
+| {                                                                   | Vestibulum ante ipsum primis in faucibus orci luctus et  |
+|   "bool": true,                                                     | ultrices posuere cubilia curae; Suspendisse eget tortor. |
+|   "string": "bar",                                                  |                                                          |
+|   "number": 1234.0,                                                 |                                                          |
+|   "array": [null, "two", ["three"]],                                |                                                          |
+|   "object": {},                                                     |                                                          |
+|   "wideObject": {"key": "1111111111111111111111111111111111111111"} |                                                          |
+| }                                                                   |                                                          |
++---------------------------------------------------------------------+----------------------------------------------------------+

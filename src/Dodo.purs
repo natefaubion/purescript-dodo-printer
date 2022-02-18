@@ -29,6 +29,7 @@ module Dodo
   , foldWithSeparator
   , foldWith
   , locally
+  , withLocalOptions
   , print
   , Printer(..)
   , plainText
@@ -49,6 +50,7 @@ import Data.String as String
 import Data.String.Regex as Regex
 import Data.String.Regex.Flags (global)
 import Data.String.Regex.Unsafe (unsafeRegex)
+import Data.Tuple (Tuple(..))
 import Dodo.Internal (Doc(..), Position, LocalOptions, bothNotEmpty, isEmpty, notEmpty)
 import Dodo.Internal (Doc, Position, bothNotEmpty, isEmpty, notEmpty) as Exports
 import Dodo.Internal.Buffer (Buffer)
@@ -197,7 +199,13 @@ foldWith f = foldr (bothNotEmpty f) mempty
 -- | *EXPERIMENTAL:* modifies printing state and options locally for a document.
 -- | This may change or be removed at any time.
 locally :: forall a. (LocalOptions -> LocalOptions) -> Doc a -> Doc a
-locally = Local
+locally k doc = Local \options -> Tuple (k options) doc
+
+-- | *EXPERIMENTAL:* modifies printing state and options locally for a document.
+-- | This may change or be removed at any time. Differs from `locally` in that the
+-- | document can be responsive to options.
+withLocalOptions :: forall a. (LocalOptions -> Tuple LocalOptions (Doc a)) -> Doc a
+withLocalOptions = Local
 
 -- | Custom printers can be used to render richer documents than just plain
 -- | text.
@@ -453,7 +461,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
             { annotations = ann : state.annotations
             , buffer = Buffer.modify (printer.enterAnnotation ann state.annotations) state.buffer
             }
-        Local k doc1 -> do
+        Local k -> do
           let
             prevOptions =
               { indent: state.position.indent
@@ -463,7 +471,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
               , pageWidth: state.options.pageWidth
               , ribbonRatio: state.options.ribbonRatio
               }
-            localOptions = k prevOptions
+            Tuple localOptions doc1 = k prevOptions
           go (Doc doc1 : LeaveLocal prevOptions: stk) $ storeOptions state.position.indent localOptions state
         Empty ->
           go stk state
