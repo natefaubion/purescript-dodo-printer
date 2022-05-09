@@ -9,7 +9,7 @@ module Dodo.Ansi
 
 import Prelude
 
-import Ansi.Codes (GraphicsParam, Color(..)) as Exports
+import Ansi.Codes (Color(..), GraphicsParam) as Exports
 import Ansi.Codes as Ansi
 import Data.List (List)
 import Data.List as List

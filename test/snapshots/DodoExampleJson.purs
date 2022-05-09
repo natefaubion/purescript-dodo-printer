@@ -40,18 +40,18 @@ infix 0 Tuple as :
 exampleJson :: Json
 exampleJson =
   JObject
-    [ "bool": JBool true
-    , "string": JString "bar"
-    , "number": JNumber 1234.0
-    , "array": JArray
+    [ "bool" : JBool true
+    , "string" : JString "bar"
+    , "number" : JNumber 1234.0
+    , "array" : JArray
         [ JNull
         , JString "two"
-        , JArray [ JString "three"]
+        , JArray [ JString "three" ]
         ]
-    , "object": JObject
+    , "object" : JObject
         []
-    , "wideObject": JObject
-        [ "key": JString "1111111111111111111111111111111111111111"
+    , "wideObject" : JObject
+        [ "key" : JString "1111111111111111111111111111111111111111"
         ]
     ]
 

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: "0.15.0"
+          purs-tidy: "0.8.0"
+          spago: "0.20.8"
+
+      - name: Build source
+        run: spago build
+
+      - name: Run tests
+        run: spago test --no-install
+
+      - name: Verify formatting
+        run: purs-tidy check src

@@ -35,10 +35,11 @@ joinArgs args last = fst $ foldr go start args
   start = case last of
     Hang a b ->
       Tuple
-        (flexSelect
-          (spaceBreak <> a)
-          (flexGroup (spaceBreak <> b))
-          (flexGroup (spaceBreak <> indent b)))
+        ( flexSelect
+            (spaceBreak <> a)
+            (flexGroup (spaceBreak <> b))
+            (flexGroup (spaceBreak <> indent b))
+        )
         (break <> a <> flexGroup (spaceBreak <> indent b))
     NoHang a ->
       Tuple
@@ -53,10 +54,11 @@ joinArgs args last = fst $ foldr go start args
         Hang a b ->
           a <> flexGroup (spaceBreak <> indent b)
     Tuple
-      (flexSelect
-        (spaceBreak <> doc)
-        (fst next)
-        (snd next))
+      ( flexSelect
+          (spaceBreak <> doc)
+          (fst next)
+          (snd next)
+      )
       (break <> doc <> snd next)
 
 test :: forall a. Doc a
