@@ -72,7 +72,7 @@ table { headers, rows } =
   rowSep =
     horizontal
       [ joint
-      , horizontal $ Array.intersperse joint $  map
+      , horizontal $ Array.intersperse joint $ map
           ( \width ->
               fill (Dodo.text "-")
                 { width: width + 2

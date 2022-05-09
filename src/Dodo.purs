@@ -51,7 +51,7 @@ import Data.String.Regex as Regex
 import Data.String.Regex.Flags (global)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (Tuple(..))
-import Dodo.Internal (Doc(..), Position, LocalOptions, bothNotEmpty, isEmpty, notEmpty)
+import Dodo.Internal (Doc(..), LocalOptions, Position, bothNotEmpty, isEmpty, notEmpty)
 import Dodo.Internal (Doc, Position, bothNotEmpty, isEmpty, notEmpty) as Exports
 import Dodo.Internal.Buffer (Buffer)
 import Dodo.Internal.Buffer as Buffer
@@ -472,7 +472,7 @@ print (Printer printer) opts = flip go initState <<< pure <<< Doc
               , ribbonRatio: state.options.ribbonRatio
               }
             Tuple localOptions doc1 = k prevOptions
-          go (Doc doc1 : LeaveLocal prevOptions: stk) $ storeOptions state.position.indent localOptions state
+          go (Doc doc1 : LeaveLocal prevOptions : stk) $ storeOptions state.position.indent localOptions state
         Empty ->
           go stk state
       LeaveFlexGroup doc1 doc2 -> case state.flexGroup of

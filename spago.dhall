@@ -1,8 +1,6 @@
-{-
-Welcome to a Spago project!
-You can edit this file as you like.
--}
 { name = "dodo-printer"
+, license = "MIT"
+, repository = "https://github.com/natefaubion/purescript-dodo-printer.git"
 , dependencies =
   [ "aff"
   , "ansi"
@@ -29,7 +27,6 @@ You can edit this file as you like.
   , "partial"
   , "posix-types"
   , "prelude"
-  , "psci-support"
   , "safe-coerce"
   , "strings"
   , "tuples"
