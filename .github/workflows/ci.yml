@@ -25,4 +25,4 @@ jobs:
         run: spago test --no-install
 
       - name: Verify formatting
-        run: purs-tidy check src
+        run: purs-tidy check src test
