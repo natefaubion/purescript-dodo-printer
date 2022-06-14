@@ -41,7 +41,7 @@ jsCurlies = flexGroup <<< encloseEmptyAlt open close (text "{}") <<< indent
   close = flexAlt (text "}") (break <> text "}")
 
 jsSquares :: forall a. Doc a -> Doc a
-jsSquares = flexGroup <<< encloseEmptyAlt open close (text "{}") <<< indent
+jsSquares = flexGroup <<< encloseEmptyAlt open close (text "[]") <<< indent
   where
   open = flexAlt (text "[") (text "[" <> break)
   close = flexAlt (text "]") (break <> text "]")
