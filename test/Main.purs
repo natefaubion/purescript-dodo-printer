@@ -41,5 +41,4 @@ main = do
         Console.log $ withGraphics (foreground Red) "✗" <> " " <> name <> " failed due to an error."
         Console.log $ Error.message err
     when (any (isBad <<< _.result) results) do
-      liftEffect $ Process.exit 1
-
+      liftEffect $ Process.exit' 1
