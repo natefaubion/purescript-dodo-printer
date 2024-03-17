@@ -20,10 +20,10 @@ jobs:
           spago: "0.93.27"
 
       - name: Build source
-        run: spago build
+        run: spago build --pedantic-packages
 
       - name: Run tests
-        run: spago test
+        run: spago test --pedantic-packages
 
       - name: Verify formatting
         run: purs-tidy check src test
