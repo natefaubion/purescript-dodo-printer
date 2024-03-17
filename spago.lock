@@ -3,21 +3,27 @@ workspace:
     dodo-printer:
       path: ./
       dependencies:
-        - aff
         - ansi
+        - either
+        - foldable-traversable
+        - integers
+        - lists
+        - maybe
+        - newtype
+        - partial
+        - prelude
+        - safe-coerce
+        - strings
+        - tuples
+      test_dependencies:
+        - aff
         - arrays
         - avar
         - console
         - control
         - effect
-        - either
         - exceptions
-        - foldable-traversable
-        - integers
-        - lists
-        - maybe
         - minibench
-        - newtype
         - node-buffer
         - node-child-process
         - node-fs
@@ -26,12 +32,6 @@ workspace:
         - node-process
         - node-streams
         - parallel
-        - partial
-        - prelude
-        - safe-coerce
-        - strings
-        - tuples
-      test_dependencies: []
       build_plan:
         - aff
         - ansi

@@ -1,29 +1,13 @@
 package:
   name: dodo-printer
   dependencies:
-    - aff
     - ansi
-    - arrays
-    - avar
-    - console
-    - control
-    - effect
     - either
-    - exceptions
     - foldable-traversable
     - integers
     - lists
     - maybe
-    - minibench
     - newtype
-    - node-buffer
-    - node-child-process
-    - node-fs
-    - node-os
-    - node-path
-    - node-process
-    - node-streams
-    - parallel
     - partial
     - prelude
     - safe-coerce
@@ -31,7 +15,23 @@ package:
     - tuples
   test:
     main: Test.Main
-    dependencies: []
+    dependencies:
+      - aff
+      - arrays
+      - avar
+      - console
+      - control
+      - effect
+      - exceptions
+      - minibench
+      - node-buffer
+      - node-child-process
+      - node-fs
+      - node-os
+      - node-path
+      - node-process
+      - node-streams
+      - parallel
 workspace:
   package_set:
     registry: 50.4.0
