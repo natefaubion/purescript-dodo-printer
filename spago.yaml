@@ -1,0 +1,38 @@
+package:
+  name: dodo-printer
+  dependencies:
+    - ansi
+    - either
+    - foldable-traversable
+    - integers
+    - lists
+    - maybe
+    - newtype
+    - partial
+    - prelude
+    - safe-coerce
+    - strings
+    - tuples
+  test:
+    main: Test.Main
+    dependencies:
+      - aff
+      - arrays
+      - avar
+      - console
+      - control
+      - effect
+      - exceptions
+      - minibench
+      - node-buffer
+      - node-child-process
+      - node-fs
+      - node-os
+      - node-path
+      - node-process
+      - node-streams
+      - parallel
+workspace:
+  package_set:
+    registry: 50.4.0
+  extra_packages: {}
