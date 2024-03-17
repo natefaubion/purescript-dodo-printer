@@ -12,7 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: purescript-contrib/setup-purescript@main
+      # - uses: purescript-contrib/setup-purescript@main
+      - uses: srghma/setup-purescript@main
         with:
           purescript: "0.15.15"
           purs-tidy: "0.11.0"
