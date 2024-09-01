@@ -33,6 +33,6 @@ package:
       - node-streams
       - parallel
 workspace:
-  package_set:
-    registry: 50.4.0
-  extra_packages: {}
+  packageSet:
+    registry: 58.0.0
+  extraPackages: {}
