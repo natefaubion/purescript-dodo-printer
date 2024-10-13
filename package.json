@@ -2,13 +2,9 @@
   "name": "purescript-dodo-printer",
   "type": "module",
   "scripts": {
-    "build": "spago build",
-    "test": "spago test",
+    "build": "spago build --censor-stats --strict --ensure-ranges --pedantic-packages",
+    "test": "spago test --censor-stats --strict --pedantic-packages",
+    "test:watch": "watchexec -e purs,js,yaml -- spago test",
     "format": "purs-tidy format-in-place src test"
-  },
-  "devDependencies": {
-    "purescript": "^0.15.15",
-    "purs-tidy": "^0.11.0",
-    "spago": "next"
   }
 }

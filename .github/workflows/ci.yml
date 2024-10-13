@@ -10,20 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      # - uses: purescript-contrib/setup-purescript@main
-      - uses: srghma/setup-purescript@main
+      - name: Set up a PureScript toolchain
+        uses: purescript-contrib/setup-purescript@main
         with:
-          purescript: "0.15.15"
-          purs-tidy: "0.11.0"
-          spago: "0.93.27"
+          purescript: "latest"
+          purs-tidy: "latest"
+          spago: "unstable"
+
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.lock') }}
+          path: |
+            .spago
+            output
+
+      # - name: Cache NPM dependencies
+      #   uses: actions/cache@v4
+      #   env:
+      #     cache-name: cache-node-modules
+      #   with:
+      #     path: ~/.npm
+      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/package.json') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}-
+      #       ${{ runner.os }}-build-${{ env.cache-name }}-
+      #       ${{ runner.os }}-build-
+      #       ${{ runner.os }}-
 
       - name: Build source
-        run: spago build --pedantic-packages
+        run: spago build --censor-stats --strict --ensure-ranges --pedantic-packages
 
       - name: Run tests
-        run: spago test --pedantic-packages
+        run: spago test --offline --censor-stats --strict --pedantic-packages
 
       - name: Verify formatting
         run: purs-tidy check src test

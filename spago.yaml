@@ -1,18 +1,18 @@
 package:
   name: dodo-printer
   dependencies:
-    - ansi
-    - either
-    - foldable-traversable
-    - integers
-    - lists
-    - maybe
-    - newtype
-    - partial
-    - prelude
-    - safe-coerce
-    - strings
-    - tuples
+    - ansi: ">=7.0.0 <8.0.0"
+    - either: ">=6.1.0 <7.0.0"
+    - foldable-traversable: ">=6.0.0 <7.0.0"
+    - integers: ">=6.0.0 <7.0.0"
+    - lists: ">=7.0.0 <8.0.0"
+    - maybe: ">=6.0.0 <7.0.0"
+    - newtype: ">=5.0.0 <6.0.0"
+    - partial: ">=4.0.0 <5.0.0"
+    - prelude: ">=6.0.1 <7.0.0"
+    - safe-coerce: ">=2.0.0 <3.0.0"
+    - strings: ">=6.0.1 <7.0.0"
+    - tuples: ">=7.0.0 <8.0.0"
   test:
     main: Test.Main
     dependencies:
