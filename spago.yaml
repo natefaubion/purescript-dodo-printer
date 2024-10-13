@@ -34,5 +34,5 @@ package:
       - parallel
 workspace:
   packageSet:
-    registry: 58.0.0
+    registry: 60.5.1
   extraPackages: {}
