@@ -24,6 +24,7 @@ jobs:
           key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.lock') }}
           path: |
             .spago
+            output
 
       - name: Build source
         run: spago build --pure
