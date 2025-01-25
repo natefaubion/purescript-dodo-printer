@@ -26,7 +26,7 @@ jobs:
             .spago
 
       - name: Build source
-        run: spago build
+        run: spago build --pure
 
       - name: Run tests
         run: spago test --pure
