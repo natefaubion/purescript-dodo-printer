@@ -1,6 +1,12 @@
 package:
   name: dodo-printer
   description: An adequate printer.
+  publish:
+    version: 2.2.2
+    license: MIT
+    location:
+      githubOwner: natefaubion
+      githubRepo: purescript-dodo-printer
   build:
     pedanticPackages: true
     strict: true
