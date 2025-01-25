@@ -2,7 +2,7 @@ package:
   name: dodo-printer
   description: An adequate printer.
   publish:
-    version: 2.2.2
+    version: 2.2.3
     license: MIT
     location:
       githubOwner: natefaubion
